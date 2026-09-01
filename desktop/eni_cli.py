@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ENI CLI - Quick commands for knowledge base and Kali bridge
+ENI CLI - Quick commands for knowledge base, Kali bridge, and User Guide
 """
 
 import sys
@@ -9,6 +9,24 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from core.knowledge_engine import get_knowledge_engine
+
+def cmd_guide():
+    """Print the full start-to-finish User Guide"""
+    candidates = [
+        Path(__file__).parent.parent / "docs" / "USER_GUIDE.md",
+        Path.home() / ".eni" / "source" / "docs" / "USER_GUIDE.md",
+        Path.cwd() / "docs" / "USER_GUIDE.md",
+    ]
+    for p in candidates:
+        if p.exists():
+            try:
+                from rich.console import Console
+                from rich.markdown import Markdown
+                Console().print(Markdown(p.read_text(encoding="utf-8")))
+            except ImportError:
+                print(p.read_text(encoding="utf-8"))
+            return
+    print("❌ USER_GUIDE.md not found. Run from inside the repo or after install.")
 
 def main():
     parser = argparse.ArgumentParser(description="ENI APEX CLI")
@@ -27,6 +45,8 @@ def main():
     learn_p.add_argument("answer")
     learn_p.add_argument("tags", nargs="?", default="general")
 
+    sub.add_parser("guide", help="Show the complete start-to-finish User Guide")
+
     args = parser.parse_args()
     knowledge = get_knowledge_engine()
 
@@ -37,7 +57,7 @@ def main():
             print(f"\n📚 {result['answer']}\n")
             print(f"Tags: {', '.join(result['tags'])}")
         else:
-            print("No match found. Use 'learn' to teach me.")
+            print("No match found. Use 'learn' to teach me, or run 'python desktop/eni_cli.py guide'")
     elif args.command == "stats":
         stats = knowledge.get_stats()
         print(f"Total entries: {stats['total_entries']}")
@@ -49,8 +69,11 @@ def main():
         tags = [t.strip() for t in args.tags.split(",")]
         qid = knowledge.add_qa(args.question, args.answer, tags)
         print(f"✅ Learned! ID: {qid}")
+    elif args.command == "guide":
+        cmd_guide()
     else:
         parser.print_help()
+        print("\nTip: run  python desktop/eni_cli.py guide  for the full start-to-finish manual.")
 
 if __name__ == "__main__":
     main()

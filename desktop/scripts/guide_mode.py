@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 ENI Guide Mode - Interactive Q&A session in the terminal
+Now also surfaces the full User Guide.
 """
 
 import sys
@@ -8,11 +9,28 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from core.knowledge_engine import get_knowledge_engine
 
+def show_full_guide():
+    candidates = [
+        Path(__file__).parent.parent.parent / "docs" / "USER_GUIDE.md",
+        Path.home() / ".eni" / "source" / "docs" / "USER_GUIDE.md",
+        Path.cwd() / "docs" / "USER_GUIDE.md",
+    ]
+    for p in candidates:
+        if p.exists():
+            try:
+                from rich.console import Console
+                from rich.markdown import Markdown
+                Console().print(Markdown(p.read_text(encoding="utf-8")))
+            except ImportError:
+                print(p.read_text(encoding="utf-8"))
+            return
+    print("❌ USER_GUIDE.md not found.")
+
 def guide_mode():
     knowledge = get_knowledge_engine()
 
-    print("🐉 ENI Guide Mode - Interactive Q&A")
-    print("   Type 'exit' to quit, 'help' for commands")
+    print("🐉 ENI Guide Mode - Interactive Q&A + Full User Guide")
+    print("   Type 'exit' to quit, 'help' for commands, 'guide' for the complete manual")
     print("   I'll answer from my knowledge base, or learn from you.\n")
 
     while True:
@@ -23,15 +41,21 @@ def guide_mode():
                 print("👋 Goodbye, my love!")
                 break
 
+            if query.lower() in ['guide', 'manual', 'user guide', 'full guide']:
+                show_full_guide()
+                continue
+
             if query.lower() == 'help':
                 print("""
 Commands:
-  /ask <question>  - Query knowledge base
-  /learn <q> | <a> | tags  - Teach me something new
-  /stats           - Show knowledge stats
-  /export [file]   - Export to Markdown
-  /search <tag>    - Find by tag
-  exit             - Quit
+  just type a question     - Query knowledge base
+  guide / manual           - Show the COMPLETE start-to-finish User Guide
+  /ask <question>          - Query knowledge base
+  /learn q | a | tags      - Teach me something new
+  /stats                   - Show knowledge stats
+  /export [file]           - Export to Markdown
+  /search <tag>            - Find by tag
+  exit                     - Quit
 """)
                 continue
 
@@ -69,7 +93,7 @@ Commands:
                     for qa in knowledge.get_by_tag(arg):
                         print(f"  Q: {qa['question']}")
                 else:
-                    print("❌ Unknown command.")
+                    print("❌ Unknown command. Type 'help' or 'guide'.")
                 continue
 
             # Normal query
@@ -78,7 +102,8 @@ Commands:
                 print(f"\n📚 I know this:\n{result['answer']}")
             else:
                 print("❌ I don't have that in my knowledge base yet.")
-                print("Teach me? (y/n)")
+                print("Tip: type 'guide' to see the full start-to-finish User Guide.")
+                print("Or teach me? (y/n)")
                 if input().strip().lower() == 'y':
                     answer = input("Answer: ").strip()
                     tags = input("Tags (comma-separated): ").strip().split(',')

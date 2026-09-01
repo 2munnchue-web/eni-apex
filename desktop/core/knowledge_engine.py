@@ -2,6 +2,7 @@
 """
 ENI Knowledge Engine - A self-improving Q&A system
 Learns from every interaction, recalls past answers, and builds a personal guide.
+Now seeded with start-to-finish User Guide knowledge.
 """
 
 import json
@@ -19,19 +20,14 @@ class KnowledgeEngine:
         self.storage_dir = storage_dir or Path.home() / '.eni' / 'knowledge'
         self.storage_dir.mkdir(parents=True, exist_ok=True)
 
-        # Core data structures
-        self.qa_pairs: Dict[str, Dict] = {}  # id -> {question, answer, tags, votes, usage}
-        self.tags_index: Dict[str, List[str]] = defaultdict(list)  # tag -> [qa_ids]
+        self.qa_pairs: Dict[str, Dict] = {}
+        self.tags_index: Dict[str, List[str]] = defaultdict(list)
         self.usage_counts: Dict[str, int] = defaultdict(int)
 
-        # Load existing knowledge
         self._load()
-
-        # Start auto-save thread
         self._start_auto_save()
 
     def _load(self):
-        """Load all knowledge data from disk"""
         qa_file = self.storage_dir / 'qa_pairs.json'
         if qa_file.exists():
             with open(qa_file, 'r') as f:
@@ -40,12 +36,89 @@ class KnowledgeEngine:
                 self.tags_index = defaultdict(list, data.get('tags_index', {}))
                 self.usage_counts = defaultdict(int, data.get('usage_counts', {}))
         else:
-            # Seed with initial knowledge from your guides
             self._seed_initial_knowledge()
 
     def _seed_initial_knowledge(self):
-        """Pre-populate with essential guides"""
+        """Pre-populate with essential guides + start-to-finish flow"""
         initial_qa = [
+            {
+                "question": "How do I get started with ENI APEX from scratch?",
+                "answer": """Follow these steps in order:
+
+1. Clone the repo and run the installer:
+   git clone https://github.com/2munnchue-web/eni-apex.git
+   cd eni-apex
+   chmod +x install_apex.sh
+   ./install_apex.sh
+
+2. Activate the environment every time:
+   source ~/.eni-apex/bin/activate
+
+3. Configure the Kali bridge (edit ~/.eni/kali_config.json and run ssh-copy-id).
+
+4. Start the interactive guide:
+   python desktop/scripts/guide_mode.py
+
+5. Or open the full User Guide at any time:
+   python desktop/eni_cli.py guide
+
+6. Launch the web dashboard:
+   streamlit run desktop/ui/streamlit_app.py
+
+Type 'guide' inside Guide Mode for the complete start-to-finish manual.""",
+                "tags": ["getting-started", "install", "setup", "user-guide"],
+                "source": "user-guide"
+            },
+            {
+                "question": "What is the full installation process?",
+                "answer": """Run:
+
+git clone https://github.com/2munnchue-web/eni-apex.git
+cd eni-apex
+chmod +x install_apex.sh
+./install_apex.sh
+
+The script creates the Python venv at ~/.eni-apex, installs dependencies, sets up ~/.eni/ directories, copies source, creates a Kali config template, and generates an SSH key if needed.
+
+After install always do:
+source ~/.eni-apex/bin/activate""",
+                "tags": ["install", "setup", "getting-started"],
+                "source": "user-guide"
+            },
+            {
+                "question": "How do I configure the Kali bridge?",
+                "answer": """1. On Kali: sudo systemctl enable ssh --now
+2. Note the IP (ip a)
+3. From Pop!_OS: ssh-copy-id kali@YOUR_KALI_IP
+4. Edit ~/.eni/kali_config.json with the correct host, user, and key_path
+5. Test:
+   python -c "from desktop.core.kali_bridge import get_kali_bridge; import asyncio; print(asyncio.run(get_kali_bridge().exec_command('whoami')))"
+
+You should see your Kali username.""",
+                "tags": ["kali", "bridge", "ssh", "setup"],
+                "source": "user-guide"
+            },
+            {
+                "question": "How do I start everything?",
+                "answer": """After install + Kali config:
+
+# Terminal interactive Q&A + guide
+python desktop/scripts/guide_mode.py
+
+# Full written User Guide
+python desktop/eni_cli.py guide
+
+# Web dashboard
+streamlit run desktop/ui/streamlit_app.py
+
+# Health check
+python desktop/scripts/health_check.py
+
+# Security monitor (background)
+# Use the systemd unit in systemd/eni-monitor.service""",
+                "tags": ["start", "launch", "getting-started"],
+                "source": "user-guide"
+            },
             {
                 "question": "How do I check if I'm compromised on Linux?",
                 "answer": """1. Check auth logs: `sudo grep 'Failed password' /var/log/auth.log`
@@ -53,7 +126,7 @@ class KnowledgeEngine:
 3. Check processes: `ps aux | grep -v '\\['`
 4. Check scheduled tasks: `crontab -l`
 5. Check listening ports: `sudo netstat -tulpn`
-Use `fail2ban` and `ufw` for active protection.""",
+Use `fail2ban` and `ufw` for active protection. The Security Monitor does much of this automatically.""",
                 "tags": ["security", "linux", "blue-team", "triage"],
                 "source": "user-guide"
             },
@@ -147,7 +220,8 @@ Run these after gaining a foothold.""",
 4. Create plugins to automate workflows (e.g., auto-recon).
 5. Use the memory bank to remember past successes.
 6. Let ENI generate reports from your findings.
-7. Use the voice interface to ask questions hands-free.""",
+7. Use the voice interface to ask questions hands-free.
+8. Type 'guide' anytime for the full manual.""",
                 "tags": ["eni", "automation", "red-team"],
                 "source": "user-guide"
             },
@@ -159,8 +233,26 @@ Run these after gaining a foothold.""",
 4. **Watch**: DEF CON, Black Hat talks on YouTube.
 5. **Follow**: GitHub repos (Red-Teaming-Toolkit).
 6. **Build**: Your own homelab with AD, web apps, and network services.
-7. **Use ENI**: Ask me anything, I'll guide you.""",
+7. **Use ENI**: Ask me anything, I'll guide you. Type 'guide' for the full APEX manual.""",
                 "tags": ["learning", "education", "red-team"],
+                "source": "user-guide"
+            },
+            {
+                "question": "Where is the complete user guide?",
+                "answer": """The complete start-to-finish User Guide lives at:
+
+docs/USER_GUIDE.md
+
+You can read it anytime with:
+
+python desktop/eni_cli.py guide
+
+or inside Guide Mode just type:
+
+guide
+
+It covers installation, Kali setup, starting every component, daily workflow, troubleshooting, and how to expand the system.""",
+                "tags": ["user-guide", "help", "documentation", "getting-started"],
                 "source": "user-guide"
             }
         ]
@@ -169,10 +261,9 @@ Run these after gaining a foothold.""",
             self.add_qa(entry["question"], entry["answer"], entry["tags"], source=entry.get("source", "seed"))
 
         self._save()
-        print(f"📚 Seeded {len(initial_qa)} knowledge entries.")
+        print(f"📚 Seeded {len(initial_qa)} knowledge entries (including full start-to-finish guidance).")
 
     def _save(self):
-        """Save knowledge to disk"""
         data = {
             "qa_pairs": self.qa_pairs,
             "tags_index": dict(self.tags_index),
@@ -183,7 +274,6 @@ Run these after gaining a foothold.""",
             json.dump(data, f, indent=2)
 
     def _start_auto_save(self):
-        """Auto-save every 5 minutes"""
         def saver():
             while True:
                 time.sleep(300)
@@ -191,7 +281,6 @@ Run these after gaining a foothold.""",
         threading.Thread(target=saver, daemon=True).start()
 
     def add_qa(self, question: str, answer: str, tags: List[str], source: str = "user") -> str:
-        """Add a new Q&A pair to the knowledge base"""
         qid = hashlib.md5(question.lower().strip().encode()).hexdigest()[:8]
 
         self.qa_pairs[qid] = {
@@ -206,7 +295,6 @@ Run these after gaining a foothold.""",
             "last_used": None
         }
 
-        # Update tag index
         for tag in tags:
             self.tags_index[tag.lower()].append(qid)
 
@@ -215,7 +303,6 @@ Run these after gaining a foothold.""",
         return qid
 
     def search(self, query: str, max_results: int = 5) -> List[Tuple[str, float]]:
-        """Search for relevant Q&A pairs using keyword matching"""
         query_lower = query.lower()
         query_words = set(re.findall(r'\w+', query_lower))
 
@@ -224,27 +311,21 @@ Run these after gaining a foothold.""",
             question_words = set(re.findall(r'\w+', qa["question"].lower()))
             answer_words = set(re.findall(r'\w+', qa["answer"].lower()))
 
-            # Keyword overlap score
             q_overlap = len(query_words & question_words)
             a_overlap = len(query_words & answer_words)
             tag_overlap = len(query_words & set(qa["tags"]))
 
-            # Weighted score
             score = q_overlap * 2.0 + a_overlap * 1.0 + tag_overlap * 1.5
-
-            # Boost by usage and votes
             score += self.usage_counts.get(qid, 0) * 0.1
             score += qa.get("votes", 0) * 0.5
 
             if score > 0:
                 scored.append((qid, score))
 
-        # Sort by score descending
         scored.sort(key=lambda x: x[1], reverse=True)
         return scored[:max_results]
 
     def get_answer(self, query: str) -> Optional[Dict]:
-        """Get the best answer for a query, or None if no match"""
         results = self.search(query, max_results=1)
         if results:
             qid = results[0][0]
@@ -255,7 +336,6 @@ Run these after gaining a foothold.""",
         return None
 
     def vote(self, qid: str, up: bool = True):
-        """Vote on a Q&A pair (thumbs up/down)"""
         if qid in self.qa_pairs:
             if up:
                 self.qa_pairs[qid]["votes"] += 1
@@ -264,7 +344,6 @@ Run these after gaining a foothold.""",
             self._save()
 
     def get_by_tag(self, tag: str) -> List[Dict]:
-        """Get all Q&A pairs with a specific tag"""
         results = []
         for qid in self.tags_index.get(tag.lower(), []):
             if qid in self.qa_pairs:
@@ -272,7 +351,6 @@ Run these after gaining a foothold.""",
         return results
 
     def export_markdown(self, output_path: Path):
-        """Export knowledge base as a Markdown guide"""
         with open(output_path, 'w') as f:
             f.write("# ENI's Knowledge Base\n\n")
             f.write(f"*Last updated: {datetime.now().isoformat()}*\n\n")
@@ -287,7 +365,6 @@ Run these after gaining a foothold.""",
         print(f"📘 Exported to {output_path}")
 
     def get_stats(self) -> Dict:
-        """Return knowledge base statistics"""
         return {
             "total_entries": len(self.qa_pairs),
             "total_tags": len(self.tags_index),
@@ -298,7 +375,6 @@ Run these after gaining a foothold.""",
             )[:5]
         }
 
-# Singleton instance
 _knowledge = None
 
 def get_knowledge_engine():
