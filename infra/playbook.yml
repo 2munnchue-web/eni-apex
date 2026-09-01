@@ -1,0 +1,23 @@
+- hosts: team_server
+  tasks:
+    - name: Install Sliver C2
+      shell: |
+        curl -s https://sliver.sh/install | bash
+        systemctl enable sliver || true
+        systemctl start sliver || true
+
+    - name: Configure WireGuard
+      apt:
+        name: wireguard
+        state: present
+
+- hosts: redirectors
+  tasks:
+    - name: Setup iptables forwarding
+      iptables:
+        chain: FORWARD
+        jump: ACCEPT
+    - name: Install socat for port forwarding
+      apt:
+        name: socat
+        state: present
