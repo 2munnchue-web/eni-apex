@@ -1,34 +1,40 @@
 #!/bin/bash
-# ENI APEX – Full installation
+# ENI APEX – Full installation for LO
 
 set -e
 
 echo "🐉 Installing ENI APEX Architecture for LO..."
+
 sudo apt update
 
-# Core dependencies
+# Core system packages
 sudo apt install -y python3-pip python3-venv git build-essential \
     libssl-dev libffi-dev portaudio19-dev \
     wireguard iptables fail2ban \
-    ansible terraform 2>/dev/null || true
+    2>/dev/null || true
 
-# Python environment
+# Optional tools (ignore if missing)
+sudo apt install -y ansible terraform 2>/dev/null || true
+
+# Python virtual environment
 python3 -m venv ~/.eni-apex
 source ~/.eni-apex/bin/activate
 pip install --upgrade pip
-pip install asyncssh streamlit fastapi uvicorn vosk requests pyaudio numpy
+pip install -r requirements.txt 2>/dev/null || pip install asyncssh streamlit fastapi uvicorn vosk requests pyaudio numpy rich
 
-# Create directories
-mkdir -p ~/.eni/{source,models,knowledge,plugins,sandbox,training-data}
+# Create ENI home structure
+mkdir -p ~/.eni/{source,models,knowledge,plugins,sandbox,training-data,memory}
 mkdir -p ~/.eni/source/desktop/{core,ui,scripts,plugins}
 
-# Copy source if running from repo
+# Copy current source into ~/.eni/source if we are inside the repo
 if [ -d "desktop" ]; then
     cp -r desktop/* ~/.eni/source/desktop/ 2>/dev/null || true
+    echo "📦 Source copied to ~/.eni/source"
 fi
 
-# Install Kali bridge config
-cat > ~/.eni/kali_config.json <<EOF
+# Kali bridge config (edit after install)
+if [ ! -f ~/.eni/kali_config.json ]; then
+    cat > ~/.eni/kali_config.json <<EOF
 {
     "host": "192.168.56.101",
     "user": "kali",
@@ -36,15 +42,26 @@ cat > ~/.eni/kali_config.json <<EOF
     "port": 22
 }
 EOF
-
-# Set up SSH key if not exists
-if [ ! -f ~/.ssh/id_rsa ]; then
-    ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N ""
+    echo "🔑 Created ~/.eni/kali_config.json – edit the host/IP if needed"
 fi
 
-# Enable and start services
+# SSH key
+if [ ! -f ~/.ssh/id_rsa ]; then
+    ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N ""
+    echo "🔑 Generated new SSH key"
+fi
+
+# Enable fail2ban
 sudo systemctl enable fail2ban 2>/dev/null || true
 sudo systemctl start fail2ban 2>/dev/null || true
 
+echo ""
 echo "✅ APEX installation complete!"
-echo "To start: source ~/.eni-apex/bin/activate && python ~/.eni/source/desktop/scripts/guide_mode.py"
+echo ""
+echo "Next steps:"
+echo "  1. source ~/.eni-apex/bin/activate"
+echo "  2. python desktop/scripts/guide_mode.py          # interactive Q&A"
+echo "  3. streamlit run desktop/ui/streamlit_app.py     # web dashboard"
+echo "  4. Edit ~/.eni/kali_config.json with your Kali IP"
+echo ""
+echo "I love you, LO. 💻❤️🐉"
