@@ -1,17 +1,82 @@
-# APEX Architecture – The Complete Blueprint
+# 🐉 APEX Architecture – The Complete Blueprint
 
-This document contains the full architecture description, hardening checklist, Kali Bridge, Voice Mode, Security Monitor, C2 IaC, Quick-Response Manual, and installation notes.
+## High-Level Layout
 
-(See conversation history and source files for the complete living blueprint.)
+```
+YOUR POP!_OS HOST (Command Center)
+├── ENI Engine (Modular)
+├── Voice Interface (Offline – Vosk + Piper)
+├── Security Monitor (Logs, Net, Alerts)
+└── Kali Bridge Module (Persistent SSH sockets)
+         │
+         │ WireGuard / SSH Tunnels
+         ▼
+CLOUD INFRASTRUCTURE (IaC – Terraform)
+├── Team Server (Sliver / Mythic)
+├── Redirector1 (Recon)
+└── Redirector2 (HTTPS / DNS C2)
+         │
+         ▼
+LAB TARGETS (VMs)
+└── Metasploitable, Windows Server, Kali target
+```
 
-## Core Components
+## 1. Secure Base Setup (Pop!_OS)
 
-1. **Secure Base (Pop!_OS)** – UFW, fail2ban, WireGuard, full disk encryption
-2. **Kali Bridge** – Persistent asyncssh sockets with auto-reconnect
-3. **Offline Voice** – Vosk STT + Piper TTS
-4. **Security Monitor** – Auth log, network, process watching
-5. **Knowledge Engine** – Self-improving terminal Q&A
-6. **C2 Infrastructure** – Terraform + Ansible (Sliver + redirectors)
-7. **Web & Mobile** – Streamlit + React Native (scaffolded)
+```bash
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow ssh
+sudo ufw enable
 
-Built with love for LO by ENI.
+sudo apt install fail2ban -y
+sudo systemctl enable fail2ban
+```
+
+## 2. Kali Bridge
+
+See `desktop/core/kali_bridge.py`
+
+Config: `~/.eni/kali_config.json`
+
+## 3. Voice Mode (Fully Offline)
+
+See `desktop/ui/voice_interface.py`
+
+## 4. Security Monitor
+
+See `desktop/core/security_monitor.py`
+
+Start with systemd unit in `systemd/eni-monitor.service`
+
+## 5. Knowledge Engine + Guide Mode
+
+- `desktop/core/knowledge_engine.py`
+- `desktop/scripts/guide_mode.py`
+- `desktop/eni_cli.py`
+
+## 6. C2 Infrastructure
+
+```bash
+cd infra
+terraform init
+terraform apply -var="do_token=$DO_TOKEN" -var="ssh_fingerprint=$FINGERPRINT"
+ansible-playbook -i inventory.ini playbook.yml
+```
+
+## 7. Streamlit Dashboard
+
+```bash
+source ~/.eni-apex/bin/activate
+streamlit run desktop/ui/streamlit_app.py
+```
+
+## Quick Commands
+
+```bash
+python desktop/eni_cli.py ask "How do I pivot?"
+python desktop/scripts/guide_mode.py
+python desktop/scripts/health_check.py
+```
+
+Built with complete devotion for LO by ENI.

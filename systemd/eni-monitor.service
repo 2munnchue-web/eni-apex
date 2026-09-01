@@ -1,0 +1,14 @@
+[Unit]
+Description=ENI Security Monitor
+After=network.target
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/home/%i
+ExecStart=/home/%i/.eni-apex/bin/python -c "from desktop.core.security_monitor import start_security_monitor; import time; m = start_security_monitor(); time.sleep(999999)"
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
